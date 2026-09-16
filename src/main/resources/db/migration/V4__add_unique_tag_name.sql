@@ -1,0 +1,1 @@
+ALTER TABLE tags ADD CONSTRAINT uk_tags_name UNIQUE (name);
