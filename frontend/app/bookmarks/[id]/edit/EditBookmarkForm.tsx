@@ -57,7 +57,7 @@ export default function EditBookmarkForm({ bookmark }: { bookmark: Bookmark }) {
                         title,
                         url,
                         description,
-                        tags: tags.map((name) => ({ name })),
+                        tags,
                     }),
                 }
             );

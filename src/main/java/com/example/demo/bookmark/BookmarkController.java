@@ -1,18 +1,17 @@
 package com.example.demo.bookmark;
 
+import com.example.demo.bookmark.dto.BookmarkRequest;
+import com.example.demo.bookmark.dto.BookmarkResponse;
 import com.example.demo.error.ApiError;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-
-import java.util.List;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/bookmarks")
@@ -25,7 +24,7 @@ public class BookmarkController {
     }
 
     @GetMapping
-    public Page<Bookmark> getAllBookmarks(
+    public Page<BookmarkResponse> getAllBookmarks(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String tag,
             @RequestParam(defaultValue = "0") int page,
@@ -52,17 +51,17 @@ public class BookmarkController {
     }
 
     @PostMapping
-    public ResponseEntity<Bookmark> createBookmark(@Valid @RequestBody Bookmark bookmark) {
-        Bookmark saved = service.create(bookmark);
-        return new ResponseEntity<>(saved, HttpStatus.CREATED);
+    public ResponseEntity<BookmarkResponse> createBookmark(
+            @Valid @RequestBody BookmarkRequest req) {
+        return new ResponseEntity<>(service.create(req), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateBookmark(
             @PathVariable Long id,
-            @Valid @RequestBody Bookmark updated,
+            @Valid @RequestBody BookmarkRequest req,
             HttpServletRequest request) {
-        return service.update(id, updated)
+        return service.update(id, req)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(new ApiError(404, "Not Found",
@@ -72,9 +71,7 @@ public class BookmarkController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteBookmark(@PathVariable Long id, HttpServletRequest request) {
-        if (service.delete(id)) {
-            return ResponseEntity.noContent().build();
-        }
+        if (service.delete(id)) return ResponseEntity.noContent().build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ApiError(404, "Not Found",
                         "Bookmark " + id + " not found",

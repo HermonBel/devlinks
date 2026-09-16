@@ -51,7 +51,7 @@ export default function NewBookmark() {
                     title,
                     url,
                     description,
-                    tags: tags.map((name) => ({ name })),
+                    tags,
                 }),
             });
 
