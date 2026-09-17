@@ -1,0 +1,161 @@
+package com.example.demo.bookmark;
+
+import com.example.demo.IntegrationTest;
+import com.example.demo.tag.Tag;
+import com.example.demo.tag.TagRepository;
+import com.example.demo.user.User;
+import com.example.demo.user.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@IntegrationTest
+class BookmarkRepositoryIT {
+
+    @Autowired private BookmarkRepository bookmarkRepository;
+    @Autowired private TagRepository tagRepository;
+    @Autowired private UserRepository userRepository;
+
+    private User alice;
+    private User bob;
+
+    @BeforeEach
+    void setUp() {
+        // Clean state — delete in FK-safe order
+        bookmarkRepository.deleteAll();
+        tagRepository.deleteAll();
+        userRepository.deleteAll();
+
+        alice = newUser("alice@example.com", "Alice");
+        bob = newUser("bob@example.com", "Bob");
+    }
+
+    @Test
+    void searchIdsForUser_returnsOnlyOwnedBookmarks() {
+        // Given: Alice has 2 bookmarks, Bob has 1
+        Bookmark a1 = createBookmark(alice, "Alice 1", "https://a1.example.com");
+        Bookmark a2 = createBookmark(alice, "Alice 2", "https://a2.example.com");
+        Bookmark b1 = createBookmark(bob, "Bob 1", "https://b1.example.com");
+
+        // When: querying as Alice
+        Page<Long> result = bookmarkRepository.searchIdsForUser(
+                alice.getId(), null, null, PageRequest.of(0, 10));
+
+        // Then: only Alice's IDs are returned
+        assertThat(result.getContent()).containsExactlyInAnyOrder(a1.getId(), a2.getId());
+        assertThat(result.getContent()).doesNotContain(b1.getId());
+        assertThat(result.getTotalElements()).isEqualTo(2);
+    }
+
+    @Test
+    void searchIdsForUser_filtersBySearchText() {
+        createBookmark(alice, "Spring Docs", "https://spring.io");
+        createBookmark(alice, "Postgres Guide", "https://postgres.org");
+
+        Page<Long> result = bookmarkRepository.searchIdsForUser(
+                alice.getId(), "spring", null, PageRequest.of(0, 10));
+
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void searchIdsForUser_filtersByTag() {
+        Tag java = tagRepository.save(new Tag("java"));
+        Tag python = tagRepository.save(new Tag("python"));
+
+        Bookmark withJava = createBookmark(alice, "Java Bookmark", "https://j.example.com");
+        withJava.setTags(Set.of(java));
+        bookmarkRepository.save(withJava);
+
+        Bookmark withPython = createBookmark(alice, "Python Bookmark", "https://p.example.com");
+        withPython.setTags(Set.of(python));
+        bookmarkRepository.save(withPython);
+
+        Page<Long> result = bookmarkRepository.searchIdsForUser(
+                alice.getId(), null, "java", PageRequest.of(0, 10));
+
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent()).containsExactly(withJava.getId());
+    }
+
+    @Test
+    void findByIdWithTagsAndOwner_returnsEmptyForOtherUser() {
+        Bookmark aliceBookmark = createBookmark(alice, "Alice", "https://a.example.com");
+
+        // Bob tries to access Alice's bookmark
+        assertThat(bookmarkRepository.findByIdWithTagsAndOwner(aliceBookmark.getId(), bob.getId()))
+                .isEmpty();
+
+        // Alice can access her own
+        assertThat(bookmarkRepository.findByIdWithTagsAndOwner(aliceBookmark.getId(), alice.getId()))
+                .isPresent();
+    }
+
+    @Test
+    void existsByIdAndOwner_returnsFalseForOtherUser() {
+        Bookmark aliceBookmark = createBookmark(alice, "Alice", "https://a.example.com");
+
+        assertThat(bookmarkRepository.existsByIdAndOwner(aliceBookmark.getId(), bob.getId())).isFalse();
+        assertThat(bookmarkRepository.existsByIdAndOwner(aliceBookmark.getId(), alice.getId())).isTrue();
+    }
+
+    @Test
+    void findAllWithTagsByIdIn_fetchesTagsEagerly() {
+        Tag tag1 = tagRepository.save(new Tag("java"));
+        Tag tag2 = tagRepository.save(new Tag("spring"));
+
+        Bookmark bookmark = createBookmark(alice, "Spring Docs", "https://spring.io");
+        bookmark.setTags(Set.of(tag1, tag2));
+        bookmarkRepository.save(bookmark);
+
+        // Flush + clear to avoid Hibernate first-level cache
+        bookmarkRepository.flush();
+
+        var loaded = bookmarkRepository.findAllWithTagsByIdIn(
+                java.util.List.of(bookmark.getId()));
+
+        assertThat(loaded).hasSize(1);
+        assertThat(loaded.get(0).getTags()).hasSize(2);
+    }
+
+    @Test
+    void searchIdsForUser_paginatesCorrectly() {
+        for (int i = 0; i < 7; i++) {
+            createBookmark(alice, "Bookmark " + i, "https://b" + i + ".example.com");
+        }
+
+        Page<Long> page0 = bookmarkRepository.searchIdsForUser(
+                alice.getId(), null, null, PageRequest.of(0, 5));
+        Page<Long> page1 = bookmarkRepository.searchIdsForUser(
+                alice.getId(), null, null, PageRequest.of(1, 5));
+
+        assertThat(page0.getContent()).hasSize(5);
+        assertThat(page1.getContent()).hasSize(2);
+        assertThat(page0.getTotalElements()).isEqualTo(7);
+        assertThat(page0.getTotalPages()).isEqualTo(2);
+    }
+
+    // --- helpers ---
+
+    private User newUser(String email, String displayName) {
+        User u = new User();
+        u.setEmail(email);
+        u.setDisplayName(displayName);
+        u.setPasswordHash("$2a$10$hashed");
+        return userRepository.save(u);
+    }
+
+    private Bookmark createBookmark(User owner, String title, String url) {
+        Bookmark b = new Bookmark();
+        b.setTitle(title);
+        b.setUrl(url);
+        b.setOwner(owner);
+        return bookmarkRepository.save(b);
+    }
+}
