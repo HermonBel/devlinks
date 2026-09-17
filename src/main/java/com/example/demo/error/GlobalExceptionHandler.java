@@ -6,6 +6,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import com.example.demo.auth.EmailAlreadyExistsException;
+import org.springframework.security.authentication.BadCredentialsException;
+
 
 import java.util.HashMap;
 import java.util.Map;
@@ -54,5 +57,21 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.internalServerError().body(body);
+    }
+
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<ApiError> handleEmailExists(
+            EmailAlreadyExistsException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                409, "Conflict", ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(409).body(body);
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiError> handleBadCredentials(
+            BadCredentialsException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                401, "Unauthorized", ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(401).body(body);
     }
 }

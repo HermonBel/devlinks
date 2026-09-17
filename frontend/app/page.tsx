@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import BookmarkActions from './BookmarkActions';
 import SearchBar from './SearchBar';
 import TagFilter from './TagFilter';
 import Pagination from './Pagination';
 import SortDropdown from './SortDropdown';
-import { fetchBookmarks } from '@/lib/api';
+import UserMenu from './UserMenu';
+import { fetchBookmarks, fetchCurrentUser } from '@/lib/api';
 
 export default async function Home({
                                        searchParams,
@@ -17,28 +19,27 @@ export default async function Home({
         direction?: 'asc' | 'desc';
     }>;
 }) {
-    const sp = await searchParams;
+    const user = await fetchCurrentUser();
+    if (!user) {
+        redirect('/login');
+    }
 
+    const sp = await searchParams;
     const page = Number(sp.page ?? 0);
     const q = sp.q;
     const tag = sp.tag;
     const sortBy = sp.sortBy ?? 'id';
     const direction = sp.direction ?? 'desc';
 
-    const data = await fetchBookmarks({
-        q,
-        tag,
-        page,
-        size: 5,
-        sortBy,
-        direction,
-    });
-
+    const data = await fetchBookmarks({ q, tag, page, size: 5, sortBy, direction });
     const hasFilters = Boolean(q || tag);
 
     return (
         <main className="p-8 max-w-3xl mx-auto">
-            <h1 className="text-2xl font-bold mb-4">DevLinks</h1>
+            <div className="flex justify-between items-center mb-4">
+                <h1 className="text-2xl font-bold">DevLinks</h1>
+                <UserMenu user={user} />
+            </div>
 
             <div className="flex flex-wrap gap-3 mb-4 items-center">
                 <Link
@@ -59,9 +60,7 @@ export default async function Home({
                     {q && <> for &ldquo;<strong>{q}</strong>&rdquo;</>}
                     {tag && <> tagged <strong>#{tag}</strong></>}
                     {' · '}
-                    <Link href="/" className="text-blue-600 underline">
-                        Clear
-                    </Link>
+                    <Link href="/" className="text-blue-600 underline">Clear</Link>
                 </p>
             )}
 

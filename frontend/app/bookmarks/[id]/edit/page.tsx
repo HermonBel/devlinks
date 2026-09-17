@@ -1,11 +1,18 @@
+import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import EditBookmarkForm from './EditBookmarkForm';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
 async function getBookmark(id: string) {
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/bookmarks/${id}`,
-        { cache: 'no-store' }
-    );
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth_token')?.value;
+
+    const res = await fetch(`${API_URL}/api/bookmarks/${id}`, {
+        cache: 'no-store',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
     if (res.status === 404) return null;
     if (!res.ok) throw new Error('Failed to fetch bookmark');
     return res.json();

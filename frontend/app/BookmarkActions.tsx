@@ -9,10 +9,10 @@ export default function BookmarkActions({ id }: { id: number }) {
     const handleDelete = async () => {
         if (!confirm('Delete this bookmark?')) return;
 
-        const res = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/bookmarks/${id}`,
-            { method: 'DELETE' }
-        );
+        const res = await fetch(`/api/backend/bookmarks/${id}`, {
+            method: 'DELETE',
+            credentials: 'include',
+        });
 
         if (res.ok) {
             router.refresh();
@@ -29,10 +29,7 @@ export default function BookmarkActions({ id }: { id: number }) {
             >
                 Edit
             </Link>
-            <button
-                onClick={handleDelete}
-                className="text-red-600 hover:underline"
-            >
+            <button onClick={handleDelete} className="text-red-600 hover:underline">
                 Delete
             </button>
         </div>

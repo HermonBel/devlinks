@@ -48,19 +48,12 @@ export default function EditBookmarkForm({ bookmark }: { bookmark: Bookmark }) {
         setSubmitting(true);
 
         try {
-            const res = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/bookmarks/${bookmark.id}`,
-                {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title,
-                        url,
-                        description,
-                        tags,
-                    }),
-                }
-            );
+            const res = await fetch(`/api/backend/bookmarks/${bookmark.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ title, url, description, tags }),
+            });
 
             if (res.ok) {
                 router.push('/');
@@ -87,24 +80,42 @@ export default function EditBookmarkForm({ bookmark }: { bookmark: Bookmark }) {
                 </div>
             )}
 
-            <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Title"
-                className="border p-2 w-full rounded"
-            />
-            <input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="URL"
-                className="border p-2 w-full rounded"
-            />
-            <input
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Description"
-                className="border p-2 w-full rounded"
-            />
+            <div>
+                <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Title"
+                    className={`border p-2 w-full rounded ${
+                        fieldErrors.title ? 'border-red-500' : ''
+                    }`}
+                />
+                {fieldErrors.title && (
+                    <p className="text-red-600 text-sm mt-1">{fieldErrors.title}</p>
+                )}
+            </div>
+
+            <div>
+                <input
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="URL"
+                    className={`border p-2 w-full rounded ${
+                        fieldErrors.url ? 'border-red-500' : ''
+                    }`}
+                />
+                {fieldErrors.url && (
+                    <p className="text-red-600 text-sm mt-1">{fieldErrors.url}</p>
+                )}
+            </div>
+
+            <div>
+                <input
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Description"
+                    className="border p-2 w-full rounded"
+                />
+            </div>
 
             <div>
                 <div className="flex flex-wrap gap-2 mb-2">

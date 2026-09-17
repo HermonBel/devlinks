@@ -1,12 +1,5 @@
 import Link from 'next/link';
-
-async function fetchTags(): Promise<{ id: number; name: string }[]> {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tags`, {
-        cache: 'no-store',
-    });
-    if (!res.ok) return [];
-    return res.json();
-}
+import { fetchTags } from '@/lib/api';
 
 export default async function TagFilter({ activeTag }: { activeTag?: string }) {
     const tags = await fetchTags();

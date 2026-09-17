@@ -18,9 +18,7 @@ export default function NewBookmark() {
 
     const addTag = () => {
         const t = tagInput.trim().toLowerCase();
-        if (t && !tags.includes(t)) {
-            setTags([...tags, t]);
-        }
+        if (t && !tags.includes(t)) setTags([...tags, t]);
         setTagInput('');
     };
 
@@ -33,9 +31,7 @@ export default function NewBookmark() {
         }
     };
 
-    const removeTag = (tag: string) => {
-        setTags(tags.filter((t) => t !== tag));
-    };
+    const removeTag = (tag: string) => setTags(tags.filter((t) => t !== tag));
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,15 +40,11 @@ export default function NewBookmark() {
         setSubmitting(true);
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bookmarks`, {
+            const res = await fetch('/api/backend/bookmarks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title,
-                    url,
-                    description,
-                    tags,
-                }),
+                credentials: 'include',
+                body: JSON.stringify({ title, url, description, tags }),
             });
 
             if (res.ok) {
@@ -120,7 +112,6 @@ export default function NewBookmark() {
                     />
                 </div>
 
-                {/* Tag input */}
                 <div>
                     <div className="flex flex-wrap gap-2 mb-2">
                         {tags.map((tag) => (
