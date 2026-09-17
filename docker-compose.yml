@@ -17,5 +17,23 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: devlinks-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/devlinks
+      SPRING_DATASOURCE_USERNAME: dev
+      SPRING_DATASOURCE_PASSWORD: dev
+      APP_JWT_SECRET: dGVzdC1zZWNyZXQta2V5LXRoYXQtaXMtNjQtYnl0ZXMtbG9uZy1mb3ItaG1hYy1zaGEyNTYtdGVzdC1rZXk=
+      APP_JWT_EXPIRATION_MS: 3600000
+    ports:
+      - "8081:8080"
+
 volumes:
   postgres_data:

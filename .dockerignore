@@ -1,0 +1,34 @@
+# Build artifacts
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Frontend (not needed in backend image)
+frontend/
+node_modules/
+
+# Docs and config
+HELP.md
+*.md
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Env files (secrets!)
+.env
+.env.local
+*.env
