@@ -31,7 +31,15 @@ export default async function Home({
     const sortBy = sp.sortBy ?? 'id';
     const direction = sp.direction ?? 'desc';
 
-    const data = await fetchBookmarks({ q, tag, page, size: 5, sortBy, direction });
+    const data = await fetchBookmarks({
+        q,
+        tag,
+        page,
+        size: 5,
+        sortBy,
+        direction,
+    });
+
     const hasFilters = Boolean(q || tag);
 
     return (
@@ -56,11 +64,13 @@ export default async function Home({
 
             {hasFilters && (
                 <p className="text-sm text-gray-600 mb-3">
-                    {data.totalElements} result{data.totalElements === 1 ? '' : 's'}
+                    {data.page.totalElements} result{data.page.totalElements === 1 ? '' : 's'}
                     {q && <> for &ldquo;<strong>{q}</strong>&rdquo;</>}
                     {tag && <> tagged <strong>#{tag}</strong></>}
                     {' · '}
-                    <Link href="/" className="text-blue-600 underline">Clear</Link>
+                    <Link href="/" className="text-blue-600 underline">
+                        Clear
+                    </Link>
                 </p>
             )}
 
@@ -99,8 +109,8 @@ export default async function Home({
             )}
 
             <Pagination
-                currentPage={data.number}
-                totalPages={data.totalPages}
+                currentPage={data.page.number}
+                totalPages={data.page.totalPages}
                 q={q}
                 tag={tag}
                 sortBy={sortBy}

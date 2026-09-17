@@ -8,12 +8,12 @@ export type Bookmark = {
 
 export type PagedBookmarks = {
     content: Bookmark[];
-    totalElements: number;
-    totalPages: number;
-    number: number;
-    size: number;
-    first: boolean;
-    last: boolean;
+    page: {
+        size: number;
+        number: number;
+        totalElements: number;
+        totalPages: number;
+    };
 };
 
 export type SearchParams = {
