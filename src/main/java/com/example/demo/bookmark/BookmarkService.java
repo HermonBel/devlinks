@@ -4,6 +4,8 @@ import com.example.demo.bookmark.dto.BookmarkRequest;
 import com.example.demo.bookmark.dto.BookmarkResponse;
 import com.example.demo.tag.Tag;
 import com.example.demo.tag.TagRepository;
+import com.example.demo.user.User;
+import com.example.demo.user.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -27,29 +29,31 @@ public class BookmarkService {
 
     private final BookmarkRepository repository;
     private final TagRepository tagRepository;
+    private final UserRepository userRepository;
     private final BookmarkMapper mapper;
 
     public BookmarkService(BookmarkRepository repository,
                            TagRepository tagRepository,
+                           UserRepository userRepository,
                            BookmarkMapper mapper) {
         this.repository = repository;
         this.tagRepository = tagRepository;
+        this.userRepository = userRepository;
         this.mapper = mapper;
     }
 
     @Transactional(readOnly = true)
-    public Page<BookmarkResponse> search(String q, String tag, Pageable pageable) {
+    public Page<BookmarkResponse> search(Long userId, String q, String tag, Pageable pageable) {
         String normalizedQ = (q == null || q.isBlank()) ? null : q.trim();
         String normalizedTag = (tag == null || tag.isBlank()) ? null : tag.trim().toLowerCase();
 
-        Page<Long> idPage = repository.searchIds(normalizedQ, normalizedTag, pageable);
+        Page<Long> idPage = repository.searchIdsForUser(userId, normalizedQ, normalizedTag, pageable);
 
         if (idPage.isEmpty()) {
             return new PageImpl<>(List.of(), pageable, 0);
         }
 
         List<Bookmark> bookmarks = repository.findAllWithTagsByIdIn(idPage.getContent());
-
         Map<Long, Bookmark> byId = bookmarks.stream()
                 .collect(Collectors.toMap(Bookmark::getId, b -> b));
 
@@ -63,23 +67,29 @@ public class BookmarkService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<BookmarkResponse> findById(Long id) {
-        return repository.findByIdWithTags(id).map(mapper::toResponse);
+    public Optional<BookmarkResponse> findById(Long id, Long userId) {
+        return repository.findByIdWithTagsAndOwner(id, userId).map(mapper::toResponse);
     }
 
     @Transactional
-    public BookmarkResponse create(BookmarkRequest request) {
-        log.info("Creating bookmark: {}", request.title());
+    public BookmarkResponse create(Long userId, BookmarkRequest request) {
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
+
+        log.info("Creating bookmark for user {}: {}", userId, request.title());
+
         Bookmark bookmark = mapper.toEntity(request);
+        bookmark.setOwner(owner);
         bookmark.setTags(resolveTags(request.tags()));
+
         Bookmark saved = repository.save(bookmark);
         return mapper.toResponse(saved);
     }
 
     @Transactional
-    public Optional<BookmarkResponse> update(Long id, BookmarkRequest request) {
-        log.info("Updating bookmark id={}", id);
-        return repository.findById(id).map(existing -> {
+    public Optional<BookmarkResponse> update(Long id, Long userId, BookmarkRequest request) {
+        log.info("Updating bookmark id={} for user {}", id, userId);
+        return repository.findByIdWithTagsAndOwner(id, userId).map(existing -> {
             existing.setTitle(request.title());
             existing.setUrl(request.url());
             existing.setDescription(request.description());
@@ -89,9 +99,11 @@ public class BookmarkService {
     }
 
     @Transactional
-    public boolean delete(Long id) {
-        log.info("Deleting bookmark id={}", id);
-        if (!repository.existsById(id)) return false;
+    public boolean delete(Long id, Long userId) {
+        log.info("Deleting bookmark id={} for user {}", id, userId);
+        if (!repository.existsByIdAndOwner(id, userId)) {
+            return false;
+        }
         repository.deleteById(id);
         return true;
     }
