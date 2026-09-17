@@ -28,13 +28,21 @@ async function handler(
     }
 
     const backendRes = await fetch(targetUrl, init);
+    const contentType = backendRes.headers.get('Content-Type') || 'application/json';
+
+    // 204 No Content and 304 Not Modified cannot have a body
+    if (backendRes.status === 204 || backendRes.status === 304) {
+        return new NextResponse(null, {
+            status: backendRes.status,
+            headers: { 'Content-Type': contentType },
+        });
+    }
+
     const data = await backendRes.text();
 
     return new NextResponse(data, {
         status: backendRes.status,
-        headers: {
-            'Content-Type': backendRes.headers.get('Content-Type') || 'application/json',
-        },
+        headers: { 'Content-Type': contentType },
     });
 }
 
